@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: palworld-server-restart-deployment-{{ index .Values "service-port" }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  schedule: {{ index .Values "restart-cron" }}
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          serviceAccountName: restart-deploy-sa
+          containers:
+            - name: kubectl
+              image: bitnami/kubectl:{{ .Capabilities.KubeVersion }}
+              imagePullPolicy: IfNotPresent
+              command:
+                - 'kubectl'
+                - 'rollout'
+                - 'restart'
+                - 'deployment/palworld-server-{{ index .Values "service-port" }}'
+                - '-n'
+                - {{ .Release.Namespace }}
+          restartPolicy: Never
+

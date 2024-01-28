@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: palworld-server-{{ index .Values "service-port" }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    name: palworld-server-{{ index .Values "service-port" }}
+    server: palworld
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: palworld-server-{{ index .Values "service-port" }}
+      server: palworld
+  template:
+    metadata:
+      labels:
+        name: palworld-server-{{ index .Values "service-port" }}
+        server: palworld
+    spec:
+      containers:
+        - name: palworld-server
+          image: "jammsen/palworld-dedicated-server:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: game-port
+              containerPort: 8211
+              protocol: UDP
+            - name: rcon-port
+              containerPort: 25575
+              protocol: TCP
+          resources:
+            requests:
+              cpu: {{ .Values.resources.cpu }}
+              memory: {{ .Values.resources.memory }}
+            limits:
+              cpu: {{ .Values.resources.cpu }}
+              memory: {{ .Values.resources.memory }}
+          env:
+          {{- range $k, $v := .Values.env }}
+          - name: {{ $k }}
+            value: {{ $v | quote }}
+          {{- end }}
+            
+          volumeMounts: 
+          - mountPath: /palworld
+            name: save
+            
+      volumes:
+        - name: save
+          persistentVolumeClaim: 
+            claimName: palworld-server-{{ index .Values "service-port" }}-pvc
+
+      nodeSelector:
+        nene-server.com/port-range: {{ index .Values "belone-port-range" }}
